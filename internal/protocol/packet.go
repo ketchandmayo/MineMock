@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 )
 
 type StatusResponse struct {
@@ -87,11 +88,7 @@ func ReadHandshakeNextState(packet []byte) (int32, error) {
 }
 
 func SendLoginDisconnect(w io.Writer, message string) error {
-	type disconnectReason struct {
-		Text string `json:"text"`
-	}
-
-	reasonPayload, err := json.Marshal(disconnectReason{Text: message})
+	reasonPayload, err := loginDisconnectReasonPayload(message)
 	if err != nil {
 		return err
 	}
@@ -108,6 +105,19 @@ func SendLoginDisconnect(w io.Writer, message string) error {
 
 	_, err = w.Write(packet)
 	return err
+}
+
+func loginDisconnectReasonPayload(message string) ([]byte, error) {
+	trimmed := strings.TrimSpace(message)
+	if trimmed != "" && json.Valid([]byte(trimmed)) {
+		return []byte(trimmed), nil
+	}
+
+	type disconnectReason struct {
+		Text string `json:"text"`
+	}
+
+	return json.Marshal(disconnectReason{Text: message})
 }
 
 func SendStatusResponse(w io.Writer, version string, protocolVersion int32, motd string, maxPlayers int32, onlinePlayers int32) error {
