@@ -89,3 +89,26 @@ func TestFromEnv_ErrorDelaySecondsDefaultOnInvalid(t *testing.T) {
 		t.Fatalf("expected ErrorDelay to fallback to 0s, got %s", cfg.ErrorDelay)
 	}
 }
+
+func TestFromEnv_ProtocolTrimmedValue(t *testing.T) {
+	t.Setenv("VERSION_NAME", "1.20.1")
+	t.Setenv("PROTOCOL", " 768 ")
+
+	cfg := FromEnv()
+	if cfg.Protocol != 768 {
+		t.Fatalf("expected explicit protocol override 768, got %d", cfg.Protocol)
+	}
+}
+
+func TestFromEnv_BlankStringEnvFallsBack(t *testing.T) {
+	t.Setenv("IP", "   ")
+	t.Setenv("PORT", "")
+
+	cfg := FromEnv()
+	if cfg.IP != "127.0.0.1" {
+		t.Fatalf("expected fallback IP 127.0.0.1, got %q", cfg.IP)
+	}
+	if cfg.Port != "25565" {
+		t.Fatalf("expected fallback PORT 25565, got %q", cfg.Port)
+	}
+}

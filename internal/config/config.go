@@ -7,6 +7,33 @@ import (
 	"time"
 )
 
+const (
+	envIP                       = "IP"
+	envPort                     = "PORT"
+	envError                    = "ERROR"
+	envErrorDelaySeconds        = "ERROR_DELAY_SECONDS"
+	envForceConnectionLostTitle = "FORCE_CONNECTION_LOST_TITLE"
+	envMOTD                     = "MOTD"
+	envVersionName              = "VERSION_NAME"
+	envProtocol                 = "PROTOCOL"
+	envMaxPlayers               = "MAX_PLAYERS"
+	envOnlinePlayers            = "ONLINE_PLAYERS"
+)
+
+const (
+	defaultIP                  = "127.0.0.1"
+	defaultPort                = "25565"
+	defaultVersionName         = "1.20.1"
+	defaultProtocol      int32 = 763
+	defaultMaxPlayers          = 20
+	defaultOnlinePlayers       = 7
+)
+
+const (
+	defaultErrorMessage = "§r§7MineMock§r\\n\u00a7cServer is temporarily unavailable. Try again later."
+	defaultMOTD         = "\u00a7c\u00a7oMine\u00a74\u00a7oMock\u00a7r\\n\u00a76Minecraft mock server on golang\u00a7r | \u00a7eWelcome\u263a"
+)
+
 type Config struct {
 	IP                       string
 	Port                     string
@@ -37,38 +64,33 @@ var versionProtocolMap = map[string]int32{
 }
 
 func FromEnv() Config {
-	versionName := stringFromEnv("VERSION_NAME", "1.20.1")
+	versionName := stringFromEnv(envVersionName, defaultVersionName)
 
 	return Config{
-		IP:                       stringFromEnv("IP", "127.0.0.1"),
-		Port:                     stringFromEnv("PORT", "25565"),
-		ErrorMessage:             serverPropertiesStringFromEnv("ERROR", "§r§7MineMock§r\\n\u00a7cServer is temporarily unavailable. Try again later."),
-		ErrorDelay:               errorDelayFromEnv("ERROR_DELAY_SECONDS", 0),
-		ForceConnectionLostTitle: boolFromEnv("FORCE_CONNECTION_LOST_TITLE", false),
-		MOTD:                     serverPropertiesStringFromEnv("MOTD", "\u00a7c\u00a7oMine\u00a74\u00a7oMock\u00a7r\\n\u00a76Minecraft mock server on golang\u00a7r | \u00a7eWelcome\u263a"),
+		IP:                       stringFromEnv(envIP, defaultIP),
+		Port:                     stringFromEnv(envPort, defaultPort),
+		ErrorMessage:             decodedStringFromEnv(envError, defaultErrorMessage),
+		ErrorDelay:               secondsDurationFromEnv(envErrorDelaySeconds, 0),
+		ForceConnectionLostTitle: boolFromEnv(envForceConnectionLostTitle, false),
+		MOTD:                     decodedStringFromEnv(envMOTD, defaultMOTD),
 		VersionName:              versionName,
 		Protocol:                 protocolFromEnv(versionName),
-		MaxPlayers:               int32FromEnv("MAX_PLAYERS", 20),
-		OnlinePlayers:            int32FromEnv("ONLINE_PLAYERS", 7),
+		MaxPlayers:               int32FromEnv(envMaxPlayers, defaultMaxPlayers),
+		OnlinePlayers:            int32FromEnv(envOnlinePlayers, defaultOnlinePlayers),
 	}
 }
 
-func errorDelayFromEnv(key string, fallbackSeconds int64) time.Duration {
-	value := os.Getenv(key)
-	if value == "" {
-		return time.Duration(fallbackSeconds) * time.Second
-	}
-
-	parsed, err := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
-	if err != nil || parsed < 0 {
+func secondsDurationFromEnv(key string, fallbackSeconds int64) time.Duration {
+	parsed, ok := int64FromEnv(key)
+	if !ok || parsed < 0 {
 		return time.Duration(fallbackSeconds) * time.Second
 	}
 
 	return time.Duration(parsed) * time.Second
 }
 
-func serverPropertiesStringFromEnv(key string, fallback string) string {
-	if value := os.Getenv(key); value != "" {
+func decodedStringFromEnv(key string, fallback string) string {
+	if value, ok := lookupNonEmptyEnv(key); ok {
 		return decodeServerPropertiesEscapes(value)
 	}
 
@@ -85,7 +107,7 @@ func decodeServerPropertiesEscapes(input string) string {
 }
 
 func stringFromEnv(key string, fallback string) string {
-	if value := os.Getenv(key); value != "" {
+	if value, ok := lookupNonEmptyEnv(key); ok {
 		return value
 	}
 
@@ -93,22 +115,31 @@ func stringFromEnv(key string, fallback string) string {
 }
 
 func int32FromEnv(key string, fallback int32) int32 {
-	value := os.Getenv(key)
-	if value == "" {
-		return fallback
-	}
-
-	parsed, err := strconv.ParseInt(value, 10, 32)
-	if err != nil {
+	parsed, ok := int64FromEnv(key)
+	if !ok {
 		return fallback
 	}
 
 	return int32(parsed)
 }
 
+func int64FromEnv(key string) (int64, bool) {
+	value, ok := lookupNonEmptyEnv(key)
+	if !ok {
+		return 0, false
+	}
+
+	parsed, err := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
+	if err != nil {
+		return 0, false
+	}
+
+	return parsed, true
+}
+
 func boolFromEnv(key string, fallback bool) bool {
-	value, ok := os.LookupEnv(key)
-	if !ok || strings.TrimSpace(value) == "" {
+	value, ok := lookupNonEmptyEnv(key)
+	if !ok {
 		return fallback
 	}
 
@@ -121,18 +152,37 @@ func boolFromEnv(key string, fallback bool) bool {
 }
 
 func protocolFromEnv(versionName string) int32 {
-	if value, ok := os.LookupEnv("PROTOCOL"); ok && value != "" {
-		parsed, err := strconv.ParseInt(value, 10, 32)
-		if err == nil {
-			return int32(parsed)
-		}
+	if parsed, ok := int32FromEnvValue(envProtocol); ok {
+		return parsed
 	}
 
 	if protocol, ok := versionProtocolMap[strings.TrimSpace(versionName)]; ok {
 		return protocol
 	}
 
-	return 763
+	return defaultProtocol
+}
+
+func int32FromEnvValue(key string) (int32, bool) {
+	value, ok := int64FromEnv(key)
+	if !ok {
+		return 0, false
+	}
+
+	return int32(value), true
+}
+
+func lookupNonEmptyEnv(key string) (string, bool) {
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		return "", false
+	}
+
+	if strings.TrimSpace(value) == "" {
+		return "", false
+	}
+
+	return value, true
 }
 
 func (c Config) Address() string {
