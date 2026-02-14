@@ -3,6 +3,7 @@ package config
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestProtocolFromEnv_UsesVersionMapWhenProtocolMissing(t *testing.T) {
@@ -68,5 +69,23 @@ func TestFromEnv_ForceConnectionLostTitle(t *testing.T) {
 	cfg := FromEnv()
 	if !cfg.ForceConnectionLostTitle {
 		t.Fatal("expected ForceConnectionLostTitle to be true")
+	}
+}
+
+func TestFromEnv_ErrorDelaySeconds(t *testing.T) {
+	t.Setenv("ERROR_DELAY_SECONDS", "3")
+
+	cfg := FromEnv()
+	if cfg.ErrorDelay != 3*time.Second {
+		t.Fatalf("expected ErrorDelay to be 3s, got %s", cfg.ErrorDelay)
+	}
+}
+
+func TestFromEnv_ErrorDelaySecondsDefaultOnInvalid(t *testing.T) {
+	t.Setenv("ERROR_DELAY_SECONDS", "-1")
+
+	cfg := FromEnv()
+	if cfg.ErrorDelay != 0 {
+		t.Fatalf("expected ErrorDelay to fallback to 0s, got %s", cfg.ErrorDelay)
 	}
 }
