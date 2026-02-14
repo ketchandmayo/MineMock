@@ -12,7 +12,15 @@ func main() {
 	cfg := config.FromEnv()
 	addr := cfg.Address()
 
-	if err := server.Run(addr, cfg.ErrorMessage); err != nil {
+	statusCfg := server.StatusConfig{
+		MOTD:          cfg.MOTD,
+		VersionName:   cfg.VersionName,
+		Protocol:      cfg.Protocol,
+		MaxPlayers:    cfg.MaxPlayers,
+		OnlinePlayers: cfg.OnlinePlayers,
+	}
+
+	if err := server.Run(addr, cfg.ErrorMessage, statusCfg); err != nil {
 		fmt.Println("Server error:", err)
 		os.Exit(1)
 	}

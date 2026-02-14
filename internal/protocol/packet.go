@@ -1,9 +1,25 @@
 package protocol
 
 import (
+	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"io"
 )
+
+type StatusResponse struct {
+	Version struct {
+		Name     string `json:"name"`
+		Protocol int32  `json:"protocol"`
+	} `json:"version"`
+	Players struct {
+		Max    int32 `json:"max"`
+		Online int32 `json:"online"`
+	} `json:"players"`
+	Description struct {
+		Text string `json:"text"`
+	} `json:"description"`
+}
 
 func ReadPacket(r io.Reader) ([]byte, error) {
 	length, err := ReadVarInt(r)
@@ -22,6 +38,54 @@ func ReadPacket(r io.Reader) ([]byte, error) {
 	return packet, nil
 }
 
+func ReadPacketID(packet []byte) (int32, []byte, error) {
+	id, n, err := decodeVarIntFromBytes(packet)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return id, packet[n:], nil
+}
+
+func ReadHandshakeNextState(packet []byte) (int32, error) {
+	id, payload, err := ReadPacketID(packet)
+	if err != nil {
+		return 0, fmt.Errorf("read handshake id: %w", err)
+	}
+	if id != 0x00 {
+		return 0, fmt.Errorf("unexpected handshake packet id: %d", id)
+	}
+
+	_, n, err := decodeVarIntFromBytes(payload) // protocol version
+	if err != nil {
+		return 0, fmt.Errorf("read protocol version: %w", err)
+	}
+	payload = payload[n:]
+
+	hostLen, n, err := decodeVarIntFromBytes(payload)
+	if err != nil {
+		return 0, fmt.Errorf("read host len: %w", err)
+	}
+	payload = payload[n:]
+	if hostLen < 0 || len(payload) < int(hostLen)+2 {
+		return 0, fmt.Errorf("invalid host field")
+	}
+	payload = payload[hostLen:]
+
+	if len(payload) < 2 {
+		return 0, fmt.Errorf("missing port")
+	}
+	_ = binary.BigEndian.Uint16(payload[:2])
+	payload = payload[2:]
+
+	nextState, _, err := decodeVarIntFromBytes(payload)
+	if err != nil {
+		return 0, fmt.Errorf("read next state: %w", err)
+	}
+
+	return nextState, nil
+}
+
 func SendLoginDisconnect(w io.Writer, message string) error {
 	reason := fmt.Sprintf(`{"text":"%s"}`, message)
 
@@ -35,4 +99,64 @@ func SendLoginDisconnect(w io.Writer, message string) error {
 
 	_, err := w.Write(packet)
 	return err
+}
+
+func SendStatusResponse(w io.Writer, version string, protocolVersion int32, motd string, maxPlayers int32, onlinePlayers int32) error {
+	status := StatusResponse{}
+	status.Version.Name = version
+	status.Version.Protocol = protocolVersion
+	status.Players.Max = maxPlayers
+	status.Players.Online = onlinePlayers
+	status.Description.Text = motd
+
+	response, err := json.Marshal(status)
+	if err != nil {
+		return err
+	}
+
+	payload := make([]byte, 0, 1+len(response)+5)
+	payload = append(payload, 0x00)
+	payload = append(payload, EncodeVarInt(int32(len(response)))...)
+	payload = append(payload, response...)
+
+	packetLen := EncodeVarInt(int32(len(payload)))
+	packet := append(packetLen, payload...)
+
+	_, err = w.Write(packet)
+	return err
+}
+
+func SendPong(w io.Writer, pingPayload []byte) error {
+	payload := make([]byte, 0, 1+len(pingPayload))
+	payload = append(payload, 0x01)
+	payload = append(payload, pingPayload...)
+
+	packet := append(EncodeVarInt(int32(len(payload))), payload...)
+	_, err := w.Write(packet)
+	return err
+}
+
+func decodeVarIntFromBytes(data []byte) (int32, int, error) {
+	var numRead int
+	var result int32
+
+	for {
+		if numRead >= len(data) {
+			return 0, 0, io.ErrUnexpectedEOF
+		}
+
+		value := int32(data[numRead] & 0x7F)
+		result |= value << (7 * numRead)
+
+		numRead++
+		if numRead > 5 {
+			return 0, 0, fmt.Errorf("varint is too big")
+		}
+
+		if data[numRead-1]&0x80 == 0 {
+			break
+		}
+	}
+
+	return result, numRead, nil
 }

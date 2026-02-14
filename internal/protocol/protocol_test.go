@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"bytes"
+	"encoding/json"
 	"testing"
 )
 
@@ -36,5 +37,63 @@ func TestSendLoginDisconnect(t *testing.T) {
 	}
 	if packet[0] != 0x00 {
 		t.Fatalf("unexpected packet id: %d", packet[0])
+	}
+}
+
+func TestReadHandshakeNextState(t *testing.T) {
+	handshake := make([]byte, 0)
+	handshake = append(handshake, EncodeVarInt(0x00)...)
+	handshake = append(handshake, EncodeVarInt(760)...)
+	handshake = append(handshake, EncodeVarInt(int32(len("localhost")))...)
+	handshake = append(handshake, []byte("localhost")...)
+	handshake = append(handshake, 0x63, 0xDD) // 25565
+	handshake = append(handshake, EncodeVarInt(1)...)
+
+	nextState, err := ReadHandshakeNextState(handshake)
+	if err != nil {
+		t.Fatalf("ReadHandshakeNextState failed: %v", err)
+	}
+	if nextState != 1 {
+		t.Fatalf("expected status state 1, got %d", nextState)
+	}
+}
+
+func TestSendStatusResponse(t *testing.T) {
+	var out bytes.Buffer
+	if err := SendStatusResponse(&out, "1.19.4", 760, "MineMock", 20, 5); err != nil {
+		t.Fatalf("SendStatusResponse failed: %v", err)
+	}
+
+	packet, err := ReadPacket(&out)
+	if err != nil {
+		t.Fatalf("ReadPacket failed: %v", err)
+	}
+
+	packetID, payload, err := ReadPacketID(packet)
+	if err != nil {
+		t.Fatalf("ReadPacketID failed: %v", err)
+	}
+	if packetID != 0x00 {
+		t.Fatalf("unexpected packet id: %d", packetID)
+	}
+
+	jsonLen, n, err := decodeVarIntFromBytes(payload)
+	if err != nil {
+		t.Fatalf("decode status length failed: %v", err)
+	}
+	payload = payload[n:]
+	if int(jsonLen) != len(payload) {
+		t.Fatalf("payload length mismatch: declared %d, got %d", jsonLen, len(payload))
+	}
+
+	var status StatusResponse
+	if err := json.Unmarshal(payload, &status); err != nil {
+		t.Fatalf("json unmarshal failed: %v", err)
+	}
+	if status.Description.Text != "MineMock" {
+		t.Fatalf("unexpected motd: %s", status.Description.Text)
+	}
+	if status.Players.Max != 20 || status.Players.Online != 5 {
+		t.Fatalf("unexpected player stats: %+v", status.Players)
 	}
 }
