@@ -21,7 +21,17 @@ type Config struct {
 func FromEnv() Config {
 	protocol := int32FromEnv("PROTOCOL", 760)
 	maxPlayers := int32FromEnv("MAX_PLAYERS", 20)
-	onlinePlayers := int32FromEnv("ONLINE_PLAYERS", 0)
+	onlinePlayers := int32FromEnv("ONLINE_PLAYERS", 7)
+
+	if maxPlayers <= 0 {
+		maxPlayers = 20
+	}
+	if onlinePlayers < 0 {
+		onlinePlayers = 0
+	}
+	if onlinePlayers > maxPlayers {
+		onlinePlayers = maxPlayers
+	}
 
 	return Config{
 		IP:            os.Getenv("IP"),
