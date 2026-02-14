@@ -33,13 +33,13 @@ Logs are written to:
 ### Linux/macOS (bash/zsh)
 
 ```bash
-IP=0.0.0.0 \
+IP=127.0.0.1 \
 PORT=25565 \
-MOTD='§aMineMock\\n§eTest server' \
+MOTD='§aMineMock\n§eTest server' \
 VERSION_NAME='1.20.1' \
 MAX_PLAYERS=100 \
 ONLINE_PLAYERS=7 \
-ERROR='§cServer is temporarily unavailable' \
+ERROR='§r§7MineMock§r\n§cServer is temporarily unavailable. Try again later.' \
 ERROR_DELAY_SECONDS=2 \
 FORCE_CONNECTION_LOST_TITLE=true \
 ./minemock_linux
@@ -48,13 +48,13 @@ FORCE_CONNECTION_LOST_TITLE=true \
 ### Windows (PowerShell)
 
 ```powershell
-$env:IP = "0.0.0.0"
+$env:IP = "127.0.0.1"
 $env:PORT = "25565"
-$env:MOTD = "§aMineMock\\n§eTest server"
+$env:MOTD = "§aMineMock\n§eTest server"
 $env:VERSION_NAME = "1.20.1"
 $env:MAX_PLAYERS = "100"
 $env:ONLINE_PLAYERS = "7"
-$env:ERROR = "§cServer is temporarily unavailable"
+$env:ERROR = "§r§7MineMock§r\n§cServer is temporarily unavailable. Try again later."
 $env:ERROR_DELAY_SECONDS = "2"
 $env:FORCE_CONNECTION_LOST_TITLE = "true"
 .\minemock_win.exe
