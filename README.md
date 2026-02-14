@@ -17,16 +17,19 @@ It can:
 ```
 ### Windows (PowerShell)
 Run the executable file `minemock_win.exe`
+
+#### or
+
 ```powershell
 .\minemock_win.exe
 ```
 
-By default, the server listens on `127.0.0.1:25565`.
+>By default, the server listens on `127.0.0.1:25565`.
 
-Logs are written to:
-
-- stdout;
-- `server.log` in the project root.
+>Logs are written to:
+>
+>- stdout;
+>- `server.log` in the project root.
 
 ## Run with Environment Variables
 
