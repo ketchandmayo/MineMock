@@ -76,18 +76,18 @@ go build -o minemock .
 
 All settings are configured via environment variables:
 
-| Variable                      |                                                                  Default | Description                                                                                                  |
-|-------------------------------|-------------------------------------------------------------------------:|--------------------------------------------------------------------------------------------------------------|
-| `IP`                          |                                                              `127.0.0.1` | Bind IP address                                                                                              |
-| `PORT`                        |                                                                  `25565` | Server TCP port                                                                                              |
-| `ERROR`                       |  `\u00a7c\u00a7oMine\u00a74\u00a7oMock\u00a7r\n\u00a72Server is working` | Disconnect message used during login                                                                         |
-| `ERROR_DELAY_SECONDS`         |                                                                      `0` | Delay before sending error (seconds)                                                                         |
-| `FORCE_CONNECTION_LOST_TITLE` |                                                                  `false` | `false`: disconnect directly in login; `true`: login success -> disconnect in play (shows "Connection Lost") |
-| `MOTD`                        | `§c§oMine§4§oMock§r\\n§6Minecraft mock server on golang§r \| §eWelcome☺` | MOTD in server status response                                                                               |
-| `VERSION_NAME`                |                                                                 `1.20.1` | Displayed Minecraft version                                                                                  |
-| `PROTOCOL`                    |                                              derived from `VERSION_NAME` | Protocol number used in status ping                                                                          |
-| `MAX_PLAYERS`                 |                                                                     `20` | `players.max` in status response                                                                             |
-| `ONLINE_PLAYERS`              |                                                                      `7` | `players.online` in status response                                                                          |
+| Variable                      | Description                                                                                                  |                                                                  Default |
+|-------------------------------|--------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------:|
+| `IP`                          | Bind IP address                                                                                              |                                                              `127.0.0.1` |
+| `PORT`                        | Server TCP port                                                                                              |                                                                  `25565` |
+| `ERROR`                       | Disconnect message used during login                                                                         |  `\u00a7c\u00a7oMine\u00a74\u00a7oMock\u00a7r\n\u00a72Server is working` |
+| `ERROR_DELAY_SECONDS`         | Delay before sending error (seconds)                                                                         |                                                                      `0` |
+| `FORCE_CONNECTION_LOST_TITLE` | `false`: disconnect directly in login; `true`: login success -> disconnect in play (shows "Connection Lost") |                                                                  `false` |
+| `MOTD`                        | MOTD in server status response                                                                               | `§c§oMine§4§oMock§r\\n§6Minecraft mock server on golang§r \| §eWelcome☺` |
+| `VERSION_NAME`                | Displayed Minecraft version                                                                                  |                                                                 `1.20.1` |
+| `PROTOCOL`                    | Protocol number used in status ping                                                                          |                                              derived from `VERSION_NAME` |
+| `MAX_PLAYERS`                 | `players.max` in status response                                                                             |                                                                     `20` |
+| `ONLINE_PLAYERS`              | `players.online` in status response                                                                          |                                                                      `7` |
 
 ### `PROTOCOL` Note
 
