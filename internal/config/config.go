@@ -38,19 +38,6 @@ var versionProtocolMap = map[string]int32{
 // FromEnv собирает конфигурацию из переменных окружения.
 func FromEnv() Config {
 	versionName := stringFromEnv("VERSION_NAME", "1.20.1")
-	protocol := protocolFromEnv(versionName)
-	maxPlayers := int32FromEnv("MAX_PLAYERS", 20)
-	onlinePlayers := int32FromEnv("ONLINE_PLAYERS", 7)
-
-	if maxPlayers <= 0 {
-		maxPlayers = 20
-	}
-	if onlinePlayers < 0 {
-		onlinePlayers = 0
-	}
-	if onlinePlayers > maxPlayers {
-		onlinePlayers = maxPlayers
-	}
 
 	return Config{
 		IP:                       os.Getenv("IP"),
@@ -59,9 +46,9 @@ func FromEnv() Config {
 		ForceConnectionLostTitle: boolFromEnv("FORCE_CONNECTION_LOST_TITLE", false),
 		MOTD:                     serverPropertiesStringFromEnv("MOTD", "\u00a7c\u00a7oMine\u00a74\u00a7oMock\u00a7r\\n\u00a76Minecraft mock server on golang\u00a7r | \u00a7eWelcome\u263a"),
 		VersionName:              versionName,
-		Protocol:                 protocol,
-		MaxPlayers:               maxPlayers,
-		OnlinePlayers:            onlinePlayers,
+		Protocol:                 protocolFromEnv(versionName),
+		MaxPlayers:               int32FromEnv("MAX_PLAYERS", 20),
+		OnlinePlayers:            int32FromEnv("ONLINE_PLAYERS", 7),
 	}
 }
 
