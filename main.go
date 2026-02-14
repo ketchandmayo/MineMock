@@ -9,15 +9,15 @@ import (
 )
 
 func main() {
-	port := "25565"
-	listener, err := net.Listen("tcp", "0.0.0.0:"+port)
+	ip := os.Getenv("IP") + ":" + os.Getenv("PORT")
+	listener, err := net.Listen("tcp", ip)
 	if err != nil {
 		fmt.Println("Error starting server:", err)
 		os.Exit(1)
 	}
 	defer listener.Close()
 
-	fmt.Println("Listening on 0.0.0.0:" + port)
+	fmt.Println("Listening on " + ip)
 
 	for {
 		conn, err := listener.Accept()
@@ -44,7 +44,7 @@ func handleConnection(conn net.Conn) {
 		return
 	}
 
-	if err := sendLoginDisconnect(conn, "Сервер временно недоступен"); err != nil {
+	if err := sendLoginDisconnect(conn, os.Getenv("ERROR")); err != nil {
 		fmt.Println("Failed to send disconnect:", err)
 	}
 }
