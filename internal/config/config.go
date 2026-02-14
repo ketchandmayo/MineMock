@@ -55,7 +55,7 @@ func FromEnv() Config {
 		IP:            os.Getenv("IP"),
 		Port:          os.Getenv("PORT"),
 		ErrorMessage:  os.Getenv("ERROR"),
-		MOTD:          stringFromEnv("MOTD", "§6MineMock §7| §fДобро пожаловать!"),
+		MOTD:          stringFromEnv("MOTD", "§c§oMine§4§oMock§r\\n§6Minecraft mock server on golang§r | §eWelcome☺"),
 		VersionName:   versionName,
 		Protocol:      protocol,
 		MaxPlayers:    maxPlayers,
