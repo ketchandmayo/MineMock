@@ -94,6 +94,96 @@ func TestSendLoginDisconnect_AllowsRawJSONComponent(t *testing.T) {
 	}
 }
 
+func TestReadLoginStartUsername(t *testing.T) {
+	payload := make([]byte, 0)
+	payload = append(payload, EncodeVarInt(0x00)...)
+	payload = append(payload, EncodeVarInt(int32(len("Steve")))...)
+	payload = append(payload, []byte("Steve")...)
+
+	username, err := ReadLoginStartUsername(payload)
+	if err != nil {
+		t.Fatalf("ReadLoginStartUsername failed: %v", err)
+	}
+	if username != "Steve" {
+		t.Fatalf("unexpected username: %s", username)
+	}
+}
+
+func TestSendLoginSuccess(t *testing.T) {
+	var out bytes.Buffer
+	if err := SendLoginSuccess(&out, "Steve"); err != nil {
+		t.Fatalf("SendLoginSuccess failed: %v", err)
+	}
+
+	packet, err := ReadPacket(&out)
+	if err != nil {
+		t.Fatalf("ReadPacket failed: %v", err)
+	}
+	packetID, payload, err := ReadPacketID(packet)
+	if err != nil {
+		t.Fatalf("ReadPacketID failed: %v", err)
+	}
+	if packetID != 0x02 {
+		t.Fatalf("unexpected login success packet id: %d", packetID)
+	}
+	if len(payload) < 16 {
+		t.Fatalf("payload too short for uuid: %d", len(payload))
+	}
+	payload = payload[16:]
+
+	usernameLen, n, err := decodeVarIntFromBytes(payload)
+	if err != nil {
+		t.Fatalf("decode username length failed: %v", err)
+	}
+	payload = payload[n:]
+	if len(payload) < int(usernameLen)+1 {
+		t.Fatalf("payload too short for username/properties")
+	}
+	if string(payload[:usernameLen]) != "Steve" {
+		t.Fatalf("unexpected username in login success: %s", string(payload[:usernameLen]))
+	}
+	if payload[usernameLen] != 0x00 {
+		t.Fatalf("expected zero properties, got %d", payload[usernameLen])
+	}
+}
+
+func TestSendPlayDisconnect(t *testing.T) {
+	var out bytes.Buffer
+	if err := SendPlayDisconnect(&out, "custom disconnect text"); err != nil {
+		t.Fatalf("SendPlayDisconnect failed: %v", err)
+	}
+
+	packet, err := ReadPacket(&out)
+	if err != nil {
+		t.Fatalf("ReadPacket failed: %v", err)
+	}
+
+	packetID, payload, err := ReadPacketID(packet)
+	if err != nil {
+		t.Fatalf("ReadPacketID failed: %v", err)
+	}
+	if packetID != 0x1A {
+		t.Fatalf("unexpected play disconnect packet id: %d", packetID)
+	}
+
+	jsonLen, n, err := decodeVarIntFromBytes(payload)
+	if err != nil {
+		t.Fatalf("decode reason length failed: %v", err)
+	}
+	reasonPayload := payload[n:]
+	if int(jsonLen) != len(reasonPayload) {
+		t.Fatalf("reason payload length mismatch: declared %d, got %d", jsonLen, len(reasonPayload))
+	}
+
+	var reason map[string]string
+	if err := json.Unmarshal(reasonPayload, &reason); err != nil {
+		t.Fatalf("reason json unmarshal failed: %v", err)
+	}
+	if reason["text"] != "custom disconnect text" {
+		t.Fatalf("unexpected reason text: %q", reason["text"])
+	}
+}
+
 func TestReadHandshakeNextState(t *testing.T) {
 	handshake := make([]byte, 0)
 	handshake = append(handshake, EncodeVarInt(0x00)...)

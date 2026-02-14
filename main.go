@@ -20,7 +20,7 @@ func main() {
 		OnlinePlayers: cfg.OnlinePlayers,
 	}
 
-	if err := server.Run(addr, cfg.ErrorMessage, statusCfg); err != nil {
+	if err := server.Run(addr, cfg.ErrorMessage, cfg.ForceConnectionLostTitle, statusCfg); err != nil {
 		fmt.Println("Server error:", err)
 		os.Exit(1)
 	}
