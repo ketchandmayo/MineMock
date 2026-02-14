@@ -40,9 +40,9 @@ func FromEnv() Config {
 	versionName := stringFromEnv("VERSION_NAME", "1.20.1")
 
 	return Config{
-		IP:                       os.Getenv("IP"),
-		Port:                     os.Getenv("PORT"),
-		ErrorMessage:             serverPropertiesStringFromEnv("ERROR", "\u00a7cServer is temporarily unavailable. Try again later.\u00a7r\\n\u00a77MineMock\u00a7r"),
+		IP:                       stringFromEnv("IP", "127.0.0.1"),
+		Port:                     stringFromEnv("PORT", "25565"),
+		ErrorMessage:             serverPropertiesStringFromEnv("ERROR", "§r§7MineMock§r\\n\u00a7cServer is temporarily unavailable. Try again later."),
 		ErrorDelay:               errorDelayFromEnv("ERROR_DELAY_SECONDS", 0),
 		ForceConnectionLostTitle: boolFromEnv("FORCE_CONNECTION_LOST_TITLE", false),
 		MOTD:                     serverPropertiesStringFromEnv("MOTD", "\u00a7c\u00a7oMine\u00a74\u00a7oMock\u00a7r\\n\u00a76Minecraft mock server on golang\u00a7r | \u00a7eWelcome\u263a"),
