@@ -87,8 +87,8 @@ func ReadHandshakeNextState(packet []byte) (int32, error) {
 	return nextState, nil
 }
 
-func SendLoginDisconnect(w io.Writer, message string) error {
-	reasonPayload, err := loginDisconnectReasonPayload(message)
+func SendLoginDisconnect(w io.Writer, title string, message string) error {
+	reasonPayload, err := loginDisconnectReasonPayload(title, message)
 	if err != nil {
 		return err
 	}
@@ -107,14 +107,23 @@ func SendLoginDisconnect(w io.Writer, message string) error {
 	return err
 }
 
-func loginDisconnectReasonPayload(message string) ([]byte, error) {
+func loginDisconnectReasonPayload(title string, message string) ([]byte, error) {
 	trimmed := strings.TrimSpace(message)
 	if trimmed != "" && json.Valid([]byte(trimmed)) {
 		return []byte(trimmed), nil
 	}
 
 	type disconnectReason struct {
-		Text string `json:"text"`
+		Translate string   `json:"translate,omitempty"`
+		With      []string `json:"with,omitempty"`
+		Text      string   `json:"text,omitempty"`
+	}
+
+	if strings.TrimSpace(title) != "" {
+		return json.Marshal(disconnectReason{
+			Translate: "disconnect.genericReason",
+			With:      []string{title, message},
+		})
 	}
 
 	return json.Marshal(disconnectReason{Text: message})

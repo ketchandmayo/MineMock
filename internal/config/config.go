@@ -10,6 +10,7 @@ import (
 type Config struct {
 	IP            string
 	Port          string
+	ErrorTitle    string
 	ErrorMessage  string
 	MOTD          string
 	VersionName   string
@@ -54,6 +55,7 @@ func FromEnv() Config {
 	return Config{
 		IP:            os.Getenv("IP"),
 		Port:          os.Getenv("PORT"),
+		ErrorTitle:    serverPropertiesStringFromEnv("ERROR_TITLE", ""),
 		ErrorMessage:  serverPropertiesStringFromEnv("ERROR", "\u00a7cServer is temporarily unavailable. Try again later.\u00a7r\\n\u00a77MineMock\u00a7r"),
 		MOTD:          serverPropertiesStringFromEnv("MOTD", "\u00a7c\u00a7oMine\u00a74\u00a7oMock\u00a7r\\n\u00a76Minecraft mock server on golang\u00a7r | \u00a7eWelcome\u263a"),
 		VersionName:   versionName,

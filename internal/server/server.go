@@ -15,7 +15,7 @@ type StatusConfig struct {
 	OnlinePlayers int32
 }
 
-func Run(addr string, errorMessage string, statusCfg StatusConfig) error {
+func Run(addr string, errorTitle string, errorMessage string, statusCfg StatusConfig) error {
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		return fmt.Errorf("start server: %w", err)
@@ -31,11 +31,11 @@ func Run(addr string, errorMessage string, statusCfg StatusConfig) error {
 			continue
 		}
 
-		go handleConnection(conn, errorMessage, statusCfg)
+		go handleConnection(conn, errorTitle, errorMessage, statusCfg)
 	}
 }
 
-func handleConnection(conn net.Conn, errorMessage string, statusCfg StatusConfig) {
+func handleConnection(conn net.Conn, errorTitle string, errorMessage string, statusCfg StatusConfig) {
 	defer conn.Close()
 	fmt.Println("New connection from", conn.RemoteAddr())
 
@@ -55,7 +55,7 @@ func handleConnection(conn net.Conn, errorMessage string, statusCfg StatusConfig
 	case 1:
 		handleStatus(conn, statusCfg)
 	case 2:
-		handleLogin(conn, errorMessage)
+		handleLogin(conn, errorTitle, errorMessage)
 	default:
 		fmt.Println("Unsupported next state:", nextState)
 	}
@@ -96,13 +96,13 @@ func handleStatus(conn net.Conn, statusCfg StatusConfig) {
 	}
 }
 
-func handleLogin(conn net.Conn, errorMessage string) {
+func handleLogin(conn net.Conn, errorTitle string, errorMessage string) {
 	if _, err := protocol.ReadPacket(conn); err != nil {
 		fmt.Println("Failed to read login start:", err)
 		return
 	}
 
-	if err := protocol.SendLoginDisconnect(conn, errorMessage); err != nil {
+	if err := protocol.SendLoginDisconnect(conn, errorTitle, errorMessage); err != nil {
 		fmt.Println("Failed to send disconnect:", err)
 	}
 }
