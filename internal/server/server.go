@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"time"
 
@@ -23,12 +24,12 @@ func Run(addr string, errorMessage string, errorDelay time.Duration, forceConnec
 	}
 	defer listener.Close()
 
-	fmt.Println("Listening on " + addr)
+	log.Println("Listening on " + addr)
 
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			fmt.Println("Connection error:", err)
+			log.Println("Connection error:", err)
 			continue
 		}
 
@@ -38,17 +39,17 @@ func Run(addr string, errorMessage string, errorDelay time.Duration, forceConnec
 
 func handleConnection(conn net.Conn, errorMessage string, errorDelay time.Duration, forceConnectionLostTitle bool, statusCfg StatusConfig) {
 	defer conn.Close()
-	fmt.Println("New connection from", conn.RemoteAddr())
+	log.Println("New connection from", conn.RemoteAddr())
 
 	handshakePacket, err := protocol.ReadPacket(conn)
 	if err != nil {
-		fmt.Println("Failed to read handshake:", err)
+		log.Println("Failed to read handshake:", err)
 		return
 	}
 
 	nextState, err := protocol.ReadHandshakeNextState(handshakePacket)
 	if err != nil {
-		fmt.Println("Failed to parse handshake:", err)
+		log.Println("Failed to parse handshake:", err)
 		return
 	}
 
@@ -58,51 +59,63 @@ func handleConnection(conn net.Conn, errorMessage string, errorDelay time.Durati
 	case 2:
 		handleLogin(conn, errorMessage, errorDelay, forceConnectionLostTitle)
 	default:
-		fmt.Println("Unsupported next state:", nextState)
+		log.Println("Unsupported next state:", nextState)
 	}
 }
 
 func handleStatus(conn net.Conn, statusCfg StatusConfig) {
 	requestPacket, err := protocol.ReadPacket(conn)
 	if err != nil {
-		fmt.Println("Failed to read status request:", err)
+		log.Println("Failed to read status request:", err)
 		return
 	}
 
 	packetID, _, err := protocol.ReadPacketID(requestPacket)
 	if err != nil || packetID != 0x00 {
-		fmt.Println("Invalid status request packet")
+		log.Println("Invalid status request packet")
 		return
 	}
 
 	if err := protocol.SendStatusResponse(conn, statusCfg.VersionName, statusCfg.Protocol, statusCfg.MOTD, statusCfg.MaxPlayers, statusCfg.OnlinePlayers); err != nil {
-		fmt.Println("Failed to send status response:", err)
+		log.Println("Failed to send status response:", err)
 		return
 	}
 
 	pingPacket, err := protocol.ReadPacket(conn)
 	if err != nil {
-		fmt.Println("Failed to read ping request:", err)
+		log.Println("Failed to read ping request:", err)
 		return
 	}
 
 	pingID, pingPayload, err := protocol.ReadPacketID(pingPacket)
 	if err != nil || pingID != 0x01 {
-		fmt.Println("Invalid ping request packet")
+		log.Println("Invalid ping request packet")
 		return
 	}
 
 	if err := protocol.SendPong(conn, pingPayload); err != nil {
-		fmt.Println("Failed to send pong:", err)
+		log.Println("Failed to send pong:", err)
 	}
 }
 
 func handleLogin(conn net.Conn, errorMessage string, errorDelay time.Duration, forceConnectionLostTitle bool) {
 	loginStartPacket, err := protocol.ReadPacket(conn)
 	if err != nil {
-		fmt.Println("Failed to read login start:", err)
+		log.Println("Failed to read login start:", err)
 		return
 	}
+
+	username, err := protocol.ReadLoginStartUsername(loginStartPacket)
+	if err != nil {
+		log.Println("Failed to parse login start username:", err)
+		return
+	}
+
+	remoteIP := conn.RemoteAddr().String()
+	if host, _, err := net.SplitHostPort(remoteIP); err == nil {
+		remoteIP = host
+	}
+	log.Printf("Login attempt: username=%q ip=%s", username, remoteIP)
 
 	if errorDelay > 0 {
 		time.Sleep(errorDelay)
@@ -110,23 +123,17 @@ func handleLogin(conn net.Conn, errorMessage string, errorDelay time.Duration, f
 
 	if !forceConnectionLostTitle {
 		if err := protocol.SendLoginDisconnect(conn, errorMessage); err != nil {
-			fmt.Println("Failed to send disconnect:", err)
+			log.Println("Failed to send disconnect:", err)
 		}
 		return
 	}
 
-	username, err := protocol.ReadLoginStartUsername(loginStartPacket)
-	if err != nil {
-		fmt.Println("Failed to parse login start username:", err)
-		return
-	}
-
 	if err := protocol.SendLoginSuccess(conn, username); err != nil {
-		fmt.Println("Failed to send login success:", err)
+		log.Println("Failed to send login success:", err)
 		return
 	}
 
 	if err := protocol.SendPlayDisconnect(conn, errorMessage); err != nil {
-		fmt.Println("Failed to send play disconnect:", err)
+		log.Println("Failed to send play disconnect:", err)
 	}
 }
