@@ -87,7 +87,16 @@ func ReadHandshakeNextState(packet []byte) (int32, error) {
 }
 
 func SendLoginDisconnect(w io.Writer, message string) error {
-	reason := fmt.Sprintf(`{"text":"%s"}`, message)
+	type disconnectReason struct {
+		Text string `json:"text"`
+	}
+
+	reasonPayload, err := json.Marshal(disconnectReason{Text: message})
+	if err != nil {
+		return err
+	}
+
+	reason := string(reasonPayload)
 
 	payload := make([]byte, 0, 1+len(reason)+5)
 	payload = append(payload, 0x00) // Login Disconnect packet id
@@ -97,7 +106,7 @@ func SendLoginDisconnect(w io.Writer, message string) error {
 	packetLen := EncodeVarInt(int32(len(payload)))
 	packet := append(packetLen, payload...)
 
-	_, err := w.Write(packet)
+	_, err = w.Write(packet)
 	return err
 }
 
