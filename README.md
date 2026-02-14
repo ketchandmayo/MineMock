@@ -1,6 +1,6 @@
 # MineMock
 
-MineMock is a minimal TCP mock server for Minecraft (Java Edition), written in Go.
+**MineMock is a minimal TCP mock server for Minecraft (Java Edition), written in Go.**
 
 It can:
 
@@ -8,15 +8,17 @@ It can:
 - accept **login** and close the connection with a configurable error message;
 - simulate a delay before returning an error (useful for launcher/bot/monitoring tests).
 
-## Requirements
-
-- Go 1.22+ (recommended)
-- A TCP port (default: `25565`)
-
 ## Quick Start
 
+### Linux/macOS (bash/zsh)
+
 ```bash
-go run .
+./minemock_linux
+```
+### Windows (PowerShell)
+Run the executable file `minemock_win.exe`
+```powershell
+.\minemock_win.exe
 ```
 
 By default, the server listens on `127.0.0.1:25565`.
@@ -40,7 +42,7 @@ ONLINE_PLAYERS=7 \
 ERROR='§cServer is temporarily unavailable' \
 ERROR_DELAY_SECONDS=2 \
 FORCE_CONNECTION_LOST_TITLE=true \
-go run .
+./minemock_linux
 ```
 
 ### Windows (PowerShell)
@@ -55,10 +57,12 @@ $env:ONLINE_PLAYERS = "7"
 $env:ERROR = "§cServer is temporarily unavailable"
 $env:ERROR_DELAY_SECONDS = "2"
 $env:FORCE_CONNECTION_LOST_TITLE = "true"
-go run .
+.\minemock_win.exe
 ```
 
 ## Build Binary
+
+* Requirements Go 1.22+ (recommended)
 
 ```bash
 go build -o minemock .
@@ -86,20 +90,6 @@ All settings are configured via environment variables:
 
 If `PROTOCOL` is not set, it is auto-selected from `VERSION_NAME`.
 If `VERSION_NAME` is unknown, fallback `763` is used.
-
-## How to Verify
-
-1. Start the server: `go run .`
-2. Open Minecraft Java Edition.
-3. Add server `127.0.0.1:25565`.
-4. Your `MOTD` should appear in the server list.
-5. On login attempt, you should receive the message from `ERROR`.
-
-## Tests
-
-```bash
-go test ./...
-```
 
 ## Project Structure
 
