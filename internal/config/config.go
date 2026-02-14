@@ -4,12 +4,14 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Config struct {
 	IP                       string
 	Port                     string
 	ErrorMessage             string
+	ErrorDelay               time.Duration
 	ForceConnectionLostTitle bool
 	MOTD                     string
 	VersionName              string
@@ -41,6 +43,7 @@ func FromEnv() Config {
 		IP:                       os.Getenv("IP"),
 		Port:                     os.Getenv("PORT"),
 		ErrorMessage:             serverPropertiesStringFromEnv("ERROR", "\u00a7cServer is temporarily unavailable. Try again later.\u00a7r\\n\u00a77MineMock\u00a7r"),
+		ErrorDelay:               errorDelayFromEnv("ERROR_DELAY_SECONDS", 0),
 		ForceConnectionLostTitle: boolFromEnv("FORCE_CONNECTION_LOST_TITLE", false),
 		MOTD:                     serverPropertiesStringFromEnv("MOTD", "\u00a7c\u00a7oMine\u00a74\u00a7oMock\u00a7r\\n\u00a76Minecraft mock server on golang\u00a7r | \u00a7eWelcome\u263a"),
 		VersionName:              versionName,
@@ -48,6 +51,20 @@ func FromEnv() Config {
 		MaxPlayers:               int32FromEnv("MAX_PLAYERS", 20),
 		OnlinePlayers:            int32FromEnv("ONLINE_PLAYERS", 7),
 	}
+}
+
+func errorDelayFromEnv(key string, fallbackSeconds int64) time.Duration {
+	value := os.Getenv(key)
+	if value == "" {
+		return time.Duration(fallbackSeconds) * time.Second
+	}
+
+	parsed, err := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
+	if err != nil || parsed < 0 {
+		return time.Duration(fallbackSeconds) * time.Second
+	}
+
+	return time.Duration(parsed) * time.Second
 }
 
 func serverPropertiesStringFromEnv(key string, fallback string) string {

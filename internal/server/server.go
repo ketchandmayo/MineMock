@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"net"
+	"time"
 
 	"MineMock/internal/protocol"
 )
@@ -15,7 +16,7 @@ type StatusConfig struct {
 	OnlinePlayers int32
 }
 
-func Run(addr string, errorMessage string, forceConnectionLostTitle bool, statusCfg StatusConfig) error {
+func Run(addr string, errorMessage string, errorDelay time.Duration, forceConnectionLostTitle bool, statusCfg StatusConfig) error {
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		return fmt.Errorf("start server: %w", err)
@@ -31,11 +32,11 @@ func Run(addr string, errorMessage string, forceConnectionLostTitle bool, status
 			continue
 		}
 
-		go handleConnection(conn, errorMessage, forceConnectionLostTitle, statusCfg)
+		go handleConnection(conn, errorMessage, errorDelay, forceConnectionLostTitle, statusCfg)
 	}
 }
 
-func handleConnection(conn net.Conn, errorMessage string, forceConnectionLostTitle bool, statusCfg StatusConfig) {
+func handleConnection(conn net.Conn, errorMessage string, errorDelay time.Duration, forceConnectionLostTitle bool, statusCfg StatusConfig) {
 	defer conn.Close()
 	fmt.Println("New connection from", conn.RemoteAddr())
 
@@ -55,7 +56,7 @@ func handleConnection(conn net.Conn, errorMessage string, forceConnectionLostTit
 	case 1:
 		handleStatus(conn, statusCfg)
 	case 2:
-		handleLogin(conn, errorMessage, forceConnectionLostTitle)
+		handleLogin(conn, errorMessage, errorDelay, forceConnectionLostTitle)
 	default:
 		fmt.Println("Unsupported next state:", nextState)
 	}
@@ -96,11 +97,15 @@ func handleStatus(conn net.Conn, statusCfg StatusConfig) {
 	}
 }
 
-func handleLogin(conn net.Conn, errorMessage string, forceConnectionLostTitle bool) {
+func handleLogin(conn net.Conn, errorMessage string, errorDelay time.Duration, forceConnectionLostTitle bool) {
 	loginStartPacket, err := protocol.ReadPacket(conn)
 	if err != nil {
 		fmt.Println("Failed to read login start:", err)
 		return
+	}
+
+	if errorDelay > 0 {
+		time.Sleep(errorDelay)
 	}
 
 	if !forceConnectionLostTitle {
