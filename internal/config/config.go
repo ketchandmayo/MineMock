@@ -54,13 +54,30 @@ func FromEnv() Config {
 	return Config{
 		IP:            os.Getenv("IP"),
 		Port:          os.Getenv("PORT"),
-		ErrorMessage:  os.Getenv("ERROR"),
-		MOTD:          stringFromEnv("MOTD", "§c§oMine§4§oMock§r\\n§6Minecraft mock server on golang§r | §eWelcome☺"),
+		ErrorMessage:  serverPropertiesStringFromEnv("ERROR", "\u00a7cServer is temporarily unavailable. Try again later.\u00a7r\\n\u00a77MineMock\u00a7r"),
+		MOTD:          serverPropertiesStringFromEnv("MOTD", "\u00a7c\u00a7oMine\u00a74\u00a7oMock\u00a7r\\n\u00a76Minecraft mock server on golang\u00a7r | \u00a7eWelcome\u263a"),
 		VersionName:   versionName,
 		Protocol:      protocol,
 		MaxPlayers:    maxPlayers,
 		OnlinePlayers: onlinePlayers,
 	}
+}
+
+func serverPropertiesStringFromEnv(key string, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return decodeServerPropertiesEscapes(value)
+	}
+
+	return decodeServerPropertiesEscapes(fallback)
+}
+
+func decodeServerPropertiesEscapes(input string) string {
+	decoded, err := strconv.Unquote(`"` + strings.ReplaceAll(input, `"`, `\\"`) + `"`)
+	if err != nil {
+		return input
+	}
+
+	return decoded
 }
 
 func stringFromEnv(key string, fallback string) string {

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -31,5 +32,32 @@ func TestProtocolFromEnv_UnknownVersionFallback(t *testing.T) {
 	cfg := FromEnv()
 	if cfg.Protocol != 763 {
 		t.Fatalf("expected fallback protocol 763, got %d", cfg.Protocol)
+	}
+}
+
+func TestFromEnv_DecodesServerPropertiesFormatting(t *testing.T) {
+	t.Setenv("MOTD", `\u00a7c\u00a7oMine\u00a74\u00a7oMock\u00a7r\n\u00a76Minecraft mock server on golang\u00a7r | \u00a7eWelcome\u263a`)
+	t.Setenv("ERROR", `\u00a7cОшибка\u00a7r\n\u00a77Попробуйте позже`)
+
+	cfg := FromEnv()
+
+	if !strings.Contains(cfg.MOTD, "\n") {
+		t.Fatalf("expected decoded MOTD to contain real newline, got %q", cfg.MOTD)
+	}
+	if strings.Contains(cfg.MOTD, `\n`) {
+		t.Fatalf("expected decoded MOTD to not contain escaped newline sequence, got %q", cfg.MOTD)
+	}
+	if !strings.Contains(cfg.MOTD, "§") || !strings.Contains(cfg.MOTD, "☺") {
+		t.Fatalf("expected decoded MOTD to include unicode formatting and symbol, got %q", cfg.MOTD)
+	}
+
+	if !strings.Contains(cfg.ErrorMessage, "\n") {
+		t.Fatalf("expected decoded ERROR to contain real newline, got %q", cfg.ErrorMessage)
+	}
+	if strings.Contains(cfg.ErrorMessage, `\n`) {
+		t.Fatalf("expected decoded ERROR to not contain escaped newline sequence, got %q", cfg.ErrorMessage)
+	}
+	if !strings.Contains(cfg.ErrorMessage, "§") {
+		t.Fatalf("expected decoded ERROR to include section sign formatting, got %q", cfg.ErrorMessage)
 	}
 }
