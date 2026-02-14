@@ -30,7 +30,7 @@ const (
 )
 
 const (
-	defaultErrorMessage = "§r§7MineMock§r\\n\u00a7cServer is temporarily unavailable. Try again later."
+	defaultErrorMessage = "\\u00a7c\\u00a7oMine\\u00a74\\u00a7oMock\\u00a7r\\n\\u00a72Server is working"
 	defaultMOTD         = "\u00a7c\u00a7oMine\u00a74\u00a7oMock\u00a7r\\n\u00a76Minecraft mock server on golang\u00a7r | \u00a7eWelcome\u263a"
 )
 
