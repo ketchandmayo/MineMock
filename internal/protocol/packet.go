@@ -149,6 +149,26 @@ func SendLoginSuccess(w io.Writer, username string) error {
 	return err
 }
 
+func SendPlayDisconnect(w io.Writer, message string) error {
+	reasonPayload, err := loginDisconnectReasonPayload(message)
+	if err != nil {
+		return err
+	}
+
+	reason := string(reasonPayload)
+
+	payload := make([]byte, 0, 1+len(reason)+5)
+	payload = append(payload, 0x1A) // Play Disconnect packet id (1.20/1.20.1)
+	payload = append(payload, EncodeVarInt(int32(len(reason)))...)
+	payload = append(payload, []byte(reason)...)
+
+	packetLen := EncodeVarInt(int32(len(payload)))
+	packet := append(packetLen, payload...)
+
+	_, err = w.Write(packet)
+	return err
+}
+
 func loginDisconnectReasonPayload(message string) ([]byte, error) {
 	trimmed := strings.TrimSpace(message)
 	if trimmed != "" && json.Valid([]byte(trimmed)) {

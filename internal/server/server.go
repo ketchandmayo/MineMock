@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"net"
-	"time"
 
 	"MineMock/internal/protocol"
 )
@@ -122,8 +121,7 @@ func handleLogin(conn net.Conn, errorMessage string, forceConnectionLostTitle bo
 		return
 	}
 
-	// Даем клиенту перейти в play-состояние, после чего закрытие сокета
-	// отображается с заголовком "Соединение потеряно" вместо
-	// "Не удалось подключиться к серверу".
-	time.Sleep(150 * time.Millisecond)
+	if err := protocol.SendPlayDisconnect(conn, errorMessage); err != nil {
+		fmt.Println("Failed to send play disconnect:", err)
+	}
 }

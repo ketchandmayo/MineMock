@@ -147,6 +147,43 @@ func TestSendLoginSuccess(t *testing.T) {
 	}
 }
 
+func TestSendPlayDisconnect(t *testing.T) {
+	var out bytes.Buffer
+	if err := SendPlayDisconnect(&out, "custom disconnect text"); err != nil {
+		t.Fatalf("SendPlayDisconnect failed: %v", err)
+	}
+
+	packet, err := ReadPacket(&out)
+	if err != nil {
+		t.Fatalf("ReadPacket failed: %v", err)
+	}
+
+	packetID, payload, err := ReadPacketID(packet)
+	if err != nil {
+		t.Fatalf("ReadPacketID failed: %v", err)
+	}
+	if packetID != 0x1A {
+		t.Fatalf("unexpected play disconnect packet id: %d", packetID)
+	}
+
+	jsonLen, n, err := decodeVarIntFromBytes(payload)
+	if err != nil {
+		t.Fatalf("decode reason length failed: %v", err)
+	}
+	reasonPayload := payload[n:]
+	if int(jsonLen) != len(reasonPayload) {
+		t.Fatalf("reason payload length mismatch: declared %d, got %d", jsonLen, len(reasonPayload))
+	}
+
+	var reason map[string]string
+	if err := json.Unmarshal(reasonPayload, &reason); err != nil {
+		t.Fatalf("reason json unmarshal failed: %v", err)
+	}
+	if reason["text"] != "custom disconnect text" {
+		t.Fatalf("unexpected reason text: %q", reason["text"])
+	}
+}
+
 func TestReadHandshakeNextState(t *testing.T) {
 	handshake := make([]byte, 0)
 	handshake = append(handshake, EncodeVarInt(0x00)...)
