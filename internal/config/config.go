@@ -10,6 +10,7 @@ import (
 type Config struct {
 	IP                       string
 	Port                     string
+	LogFile                  string
 	ErrorMessage             string
 	ErrorDelay               time.Duration
 	ForceConnectionLostTitle bool
@@ -42,6 +43,7 @@ func FromEnv() Config {
 	return Config{
 		IP:                       os.Getenv("IP"),
 		Port:                     os.Getenv("PORT"),
+		LogFile:                  stringFromEnv("LOG_FILE", "logs/server.log"),
 		ErrorMessage:             serverPropertiesStringFromEnv("ERROR", "\u00a7cServer is temporarily unavailable. Try again later.\u00a7r\\n\u00a77MineMock\u00a7r"),
 		ErrorDelay:               errorDelayFromEnv("ERROR_DELAY_SECONDS", 0),
 		ForceConnectionLostTitle: boolFromEnv("FORCE_CONNECTION_LOST_TITLE", false),
