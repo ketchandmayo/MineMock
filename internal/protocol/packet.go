@@ -1,6 +1,7 @@
 package protocol
 
 import (
+	"crypto/rand"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -87,8 +88,29 @@ func ReadHandshakeNextState(packet []byte) (int32, error) {
 	return nextState, nil
 }
 
-func SendLoginDisconnect(w io.Writer, title string, message string) error {
-	reasonPayload, err := loginDisconnectReasonPayload(title, message)
+func ReadLoginStartUsername(packet []byte) (string, error) {
+	id, payload, err := ReadPacketID(packet)
+	if err != nil {
+		return "", fmt.Errorf("read login start id: %w", err)
+	}
+	if id != 0x00 {
+		return "", fmt.Errorf("unexpected login start packet id: %d", id)
+	}
+
+	usernameLen, n, err := decodeVarIntFromBytes(payload)
+	if err != nil {
+		return "", fmt.Errorf("read username length: %w", err)
+	}
+	payload = payload[n:]
+	if usernameLen <= 0 || len(payload) < int(usernameLen) {
+		return "", fmt.Errorf("invalid username length")
+	}
+
+	return string(payload[:usernameLen]), nil
+}
+
+func SendLoginDisconnect(w io.Writer, message string) error {
+	reasonPayload, err := loginDisconnectReasonPayload(message)
 	if err != nil {
 		return err
 	}
@@ -107,23 +129,34 @@ func SendLoginDisconnect(w io.Writer, title string, message string) error {
 	return err
 }
 
-func loginDisconnectReasonPayload(title string, message string) ([]byte, error) {
+func SendLoginSuccess(w io.Writer, username string) error {
+	payload := make([]byte, 0, 1+16+len(username)+16)
+	payload = append(payload, 0x02) // Login Success packet id
+
+	uuid := make([]byte, 16)
+	if _, err := rand.Read(uuid); err != nil {
+		return fmt.Errorf("generate uuid: %w", err)
+	}
+	payload = append(payload, uuid...)
+	payload = append(payload, EncodeVarInt(int32(len(username)))...)
+	payload = append(payload, []byte(username)...)
+	payload = append(payload, 0x00) // properties count
+
+	packetLen := EncodeVarInt(int32(len(payload)))
+	packet := append(packetLen, payload...)
+
+	_, err := w.Write(packet)
+	return err
+}
+
+func loginDisconnectReasonPayload(message string) ([]byte, error) {
 	trimmed := strings.TrimSpace(message)
 	if trimmed != "" && json.Valid([]byte(trimmed)) {
 		return []byte(trimmed), nil
 	}
 
 	type disconnectReason struct {
-		Translate string   `json:"translate,omitempty"`
-		With      []string `json:"with,omitempty"`
-		Text      string   `json:"text,omitempty"`
-	}
-
-	if strings.TrimSpace(title) != "" {
-		return json.Marshal(disconnectReason{
-			Translate: "disconnect.genericReason",
-			With:      []string{title, message},
-		})
+		Text string `json:"text"`
 	}
 
 	return json.Marshal(disconnectReason{Text: message})

@@ -23,7 +23,7 @@ func TestVarIntRoundTrip(t *testing.T) {
 
 func TestSendLoginDisconnect(t *testing.T) {
 	var out bytes.Buffer
-	if err := SendLoginDisconnect(&out, "", "test"); err != nil {
+	if err := SendLoginDisconnect(&out, "test"); err != nil {
 		t.Fatalf("SendLoginDisconnect failed: %v", err)
 	}
 
@@ -66,7 +66,7 @@ func TestSendLoginDisconnect_AllowsRawJSONComponent(t *testing.T) {
 	var out bytes.Buffer
 	rawReason := `{"text":"Соединение потеряно"}`
 
-	if err := SendLoginDisconnect(&out, "", rawReason); err != nil {
+	if err := SendLoginDisconnect(&out, rawReason); err != nil {
 		t.Fatalf("SendLoginDisconnect failed: %v", err)
 	}
 
@@ -94,45 +94,56 @@ func TestSendLoginDisconnect_AllowsRawJSONComponent(t *testing.T) {
 	}
 }
 
-func TestSendLoginDisconnect_WithTitle(t *testing.T) {
-	var out bytes.Buffer
+func TestReadLoginStartUsername(t *testing.T) {
+	payload := make([]byte, 0)
+	payload = append(payload, EncodeVarInt(0x00)...)
+	payload = append(payload, EncodeVarInt(int32(len("Steve")))...)
+	payload = append(payload, []byte("Steve")...)
 
-	if err := SendLoginDisconnect(&out, "Соединение потеряно", "Internal Exception: io.netty.channel.unix.Errors$NativeIoException"); err != nil {
-		t.Fatalf("SendLoginDisconnect failed: %v", err)
+	username, err := ReadLoginStartUsername(payload)
+	if err != nil {
+		t.Fatalf("ReadLoginStartUsername failed: %v", err)
+	}
+	if username != "Steve" {
+		t.Fatalf("unexpected username: %s", username)
+	}
+}
+
+func TestSendLoginSuccess(t *testing.T) {
+	var out bytes.Buffer
+	if err := SendLoginSuccess(&out, "Steve"); err != nil {
+		t.Fatalf("SendLoginSuccess failed: %v", err)
 	}
 
 	packet, err := ReadPacket(&out)
 	if err != nil {
 		t.Fatalf("ReadPacket failed: %v", err)
 	}
-
-	_, payload, err := ReadPacketID(packet)
+	packetID, payload, err := ReadPacketID(packet)
 	if err != nil {
 		t.Fatalf("ReadPacketID failed: %v", err)
 	}
+	if packetID != 0x02 {
+		t.Fatalf("unexpected login success packet id: %d", packetID)
+	}
+	if len(payload) < 16 {
+		t.Fatalf("payload too short for uuid: %d", len(payload))
+	}
+	payload = payload[16:]
 
-	jsonLen, n, err := decodeVarIntFromBytes(payload)
+	usernameLen, n, err := decodeVarIntFromBytes(payload)
 	if err != nil {
-		t.Fatalf("decode reason length failed: %v", err)
+		t.Fatalf("decode username length failed: %v", err)
 	}
-	reasonPayload := payload[n:]
-	if int(jsonLen) != len(reasonPayload) {
-		t.Fatalf("reason payload length mismatch: declared %d, got %d", jsonLen, len(reasonPayload))
+	payload = payload[n:]
+	if len(payload) < int(usernameLen)+1 {
+		t.Fatalf("payload too short for username/properties")
 	}
-
-	var reason map[string]any
-	if err := json.Unmarshal(reasonPayload, &reason); err != nil {
-		t.Fatalf("reason json unmarshal failed: %v", err)
+	if string(payload[:usernameLen]) != "Steve" {
+		t.Fatalf("unexpected username in login success: %s", string(payload[:usernameLen]))
 	}
-	if reason["translate"] != "disconnect.genericReason" {
-		t.Fatalf("unexpected translate value: %v", reason["translate"])
-	}
-	with, ok := reason["with"].([]any)
-	if !ok || len(with) != 2 {
-		t.Fatalf("unexpected with payload: %#v", reason["with"])
-	}
-	if with[0] != "Соединение потеряно" {
-		t.Fatalf("unexpected title value: %v", with[0])
+	if payload[usernameLen] != 0x00 {
+		t.Fatalf("expected zero properties, got %d", payload[usernameLen])
 	}
 }
 

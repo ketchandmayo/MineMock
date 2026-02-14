@@ -61,3 +61,12 @@ func TestFromEnv_DecodesServerPropertiesFormatting(t *testing.T) {
 		t.Fatalf("expected decoded ERROR to include section sign formatting, got %q", cfg.ErrorMessage)
 	}
 }
+
+func TestFromEnv_ForceConnectionLostTitle(t *testing.T) {
+	t.Setenv("FORCE_CONNECTION_LOST_TITLE", "true")
+
+	cfg := FromEnv()
+	if !cfg.ForceConnectionLostTitle {
+		t.Fatal("expected ForceConnectionLostTitle to be true")
+	}
+}

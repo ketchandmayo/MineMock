@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"net"
+	"time"
 
 	"MineMock/internal/protocol"
 )
@@ -15,7 +16,7 @@ type StatusConfig struct {
 	OnlinePlayers int32
 }
 
-func Run(addr string, errorTitle string, errorMessage string, statusCfg StatusConfig) error {
+func Run(addr string, errorMessage string, forceConnectionLostTitle bool, statusCfg StatusConfig) error {
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		return fmt.Errorf("start server: %w", err)
@@ -31,11 +32,11 @@ func Run(addr string, errorTitle string, errorMessage string, statusCfg StatusCo
 			continue
 		}
 
-		go handleConnection(conn, errorTitle, errorMessage, statusCfg)
+		go handleConnection(conn, errorMessage, forceConnectionLostTitle, statusCfg)
 	}
 }
 
-func handleConnection(conn net.Conn, errorTitle string, errorMessage string, statusCfg StatusConfig) {
+func handleConnection(conn net.Conn, errorMessage string, forceConnectionLostTitle bool, statusCfg StatusConfig) {
 	defer conn.Close()
 	fmt.Println("New connection from", conn.RemoteAddr())
 
@@ -55,7 +56,7 @@ func handleConnection(conn net.Conn, errorTitle string, errorMessage string, sta
 	case 1:
 		handleStatus(conn, statusCfg)
 	case 2:
-		handleLogin(conn, errorTitle, errorMessage)
+		handleLogin(conn, errorMessage, forceConnectionLostTitle)
 	default:
 		fmt.Println("Unsupported next state:", nextState)
 	}
@@ -96,13 +97,33 @@ func handleStatus(conn net.Conn, statusCfg StatusConfig) {
 	}
 }
 
-func handleLogin(conn net.Conn, errorTitle string, errorMessage string) {
-	if _, err := protocol.ReadPacket(conn); err != nil {
+func handleLogin(conn net.Conn, errorMessage string, forceConnectionLostTitle bool) {
+	loginStartPacket, err := protocol.ReadPacket(conn)
+	if err != nil {
 		fmt.Println("Failed to read login start:", err)
 		return
 	}
 
-	if err := protocol.SendLoginDisconnect(conn, errorTitle, errorMessage); err != nil {
-		fmt.Println("Failed to send disconnect:", err)
+	if !forceConnectionLostTitle {
+		if err := protocol.SendLoginDisconnect(conn, errorMessage); err != nil {
+			fmt.Println("Failed to send disconnect:", err)
+		}
+		return
 	}
+
+	username, err := protocol.ReadLoginStartUsername(loginStartPacket)
+	if err != nil {
+		fmt.Println("Failed to parse login start username:", err)
+		return
+	}
+
+	if err := protocol.SendLoginSuccess(conn, username); err != nil {
+		fmt.Println("Failed to send login success:", err)
+		return
+	}
+
+	// Даем клиенту перейти в play-состояние, после чего закрытие сокета
+	// отображается с заголовком "Соединение потеряно" вместо
+	// "Не удалось подключиться к серверу".
+	time.Sleep(150 * time.Millisecond)
 }
