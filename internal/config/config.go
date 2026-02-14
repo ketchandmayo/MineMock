@@ -6,7 +6,6 @@ import (
 	"strings"
 )
 
-// Config содержит переменные окружения для запуска сервера.
 type Config struct {
 	IP                       string
 	Port                     string
@@ -35,7 +34,6 @@ var versionProtocolMap = map[string]int32{
 	"1.21.4": 769,
 }
 
-// FromEnv собирает конфигурацию из переменных окружения.
 func FromEnv() Config {
 	versionName := stringFromEnv("VERSION_NAME", "1.20.1")
 
@@ -120,7 +118,6 @@ func protocolFromEnv(versionName string) int32 {
 	return 763
 }
 
-// Address возвращает адрес в формате host:port.
 func (c Config) Address() string {
 	return c.IP + ":" + c.Port
 }
