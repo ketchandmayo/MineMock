@@ -1,0 +1,17 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="minemock_win" type="GoApplicationRunConfiguration" factoryName="Go Application">
+    <module name="MineMock" />
+    <working_directory value="$PROJECT_DIR$" />
+    <envs>
+      <env name="GOARCH" value="amd64" />
+      <env name="GOOS" value="windows" />
+    </envs>
+    <kind value="PACKAGE" />
+    <package value="MineMock" />
+    <directory value="$PROJECT_DIR$" />
+    <filePath value="$PROJECT_DIR$" />
+    <output_directory value="$PROJECT_DIR$/build" />
+    <option name="run" value="false" />
+    <method v="2" />
+  </configuration>
+</component>
