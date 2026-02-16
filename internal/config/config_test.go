@@ -112,3 +112,32 @@ func TestFromEnv_BlankStringEnvFallsBack(t *testing.T) {
 		t.Fatalf("expected fallback PORT 25565, got %q", cfg.Port)
 	}
 }
+
+func TestFromEnv_LoginWhitelistParsing(t *testing.T) {
+	t.Setenv("LOGIN_WHITELIST", "Steve, Alex ;  Notch")
+
+	cfg := FromEnv()
+
+	if len(cfg.LoginWhitelist) != 3 {
+		t.Fatalf("expected 3 whitelist users, got %d", len(cfg.LoginWhitelist))
+	}
+	if !cfg.IsLoginWhitelisted("steve") {
+		t.Fatal("expected steve to be whitelisted")
+	}
+	if !cfg.IsLoginWhitelisted("ALEX") {
+		t.Fatal("expected ALEX to be whitelisted (case-insensitive)")
+	}
+	if cfg.IsLoginWhitelisted("Herobrine") {
+		t.Fatal("expected Herobrine not to be whitelisted")
+	}
+}
+
+func TestFromEnv_RealServerAddr(t *testing.T) {
+	t.Setenv("REAL_SERVER_ADDR", "play.example.com:25565")
+
+	cfg := FromEnv()
+
+	if cfg.RealServerAddr != "play.example.com:25565" {
+		t.Fatalf("unexpected RealServerAddr: %q", cfg.RealServerAddr)
+	}
+}

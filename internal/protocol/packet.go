@@ -217,6 +217,13 @@ func SendPong(w io.Writer, pingPayload []byte) error {
 	return err
 }
 
+func WrapPacket(payload []byte) []byte {
+	packet := make([]byte, 0, len(payload)+5)
+	packet = append(packet, EncodeVarInt(int32(len(payload)))...)
+	packet = append(packet, payload...)
+	return packet
+}
+
 func decodeVarIntFromBytes(data []byte) (int32, int, error) {
 	var numRead int
 	var result int32

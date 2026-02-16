@@ -241,3 +241,17 @@ func TestSendStatusResponse(t *testing.T) {
 		t.Fatalf("unexpected player stats: %+v", status.Players)
 	}
 }
+
+func TestWrapPacket(t *testing.T) {
+	payload := []byte{0x00, 0x01, 0x02, 0x03}
+	wrapped := WrapPacket(payload)
+
+	packet, err := ReadPacket(bytes.NewReader(wrapped))
+	if err != nil {
+		t.Fatalf("ReadPacket failed: %v", err)
+	}
+
+	if !bytes.Equal(packet, payload) {
+		t.Fatalf("expected payload %v, got %v", payload, packet)
+	}
+}

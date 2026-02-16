@@ -1,7 +1,9 @@
 package server
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"time"
@@ -17,7 +19,15 @@ type StatusConfig struct {
 	OnlinePlayers int32
 }
 
-func Run(addr string, errorMessage string, errorDelay time.Duration, forceConnectionLostTitle bool, statusCfg StatusConfig) error {
+type LoginConfig struct {
+	ErrorMessage             string
+	ErrorDelay               time.Duration
+	ForceConnectionLostTitle bool
+	RealServerAddr           string
+	IsWhitelisted            func(username string) bool
+}
+
+func Run(addr string, statusCfg StatusConfig, loginCfg LoginConfig) error {
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		return fmt.Errorf("start server: %w", err)
@@ -33,11 +43,11 @@ func Run(addr string, errorMessage string, errorDelay time.Duration, forceConnec
 			continue
 		}
 
-		go handleConnection(conn, errorMessage, errorDelay, forceConnectionLostTitle, statusCfg)
+		go handleConnection(conn, statusCfg, loginCfg)
 	}
 }
 
-func handleConnection(conn net.Conn, errorMessage string, errorDelay time.Duration, forceConnectionLostTitle bool, statusCfg StatusConfig) {
+func handleConnection(conn net.Conn, statusCfg StatusConfig, loginCfg LoginConfig) {
 	defer conn.Close()
 	log.Println("New connection from", conn.RemoteAddr())
 
@@ -57,7 +67,7 @@ func handleConnection(conn net.Conn, errorMessage string, errorDelay time.Durati
 	case 1:
 		handleStatus(conn, statusCfg)
 	case 2:
-		handleLogin(conn, errorMessage, errorDelay, forceConnectionLostTitle)
+		handleLogin(conn, handshakePacket, loginCfg)
 	default:
 		log.Println("Unsupported next state:", nextState)
 	}
@@ -98,7 +108,7 @@ func handleStatus(conn net.Conn, statusCfg StatusConfig) {
 	}
 }
 
-func handleLogin(conn net.Conn, errorMessage string, errorDelay time.Duration, forceConnectionLostTitle bool) {
+func handleLogin(conn net.Conn, handshakePacket []byte, cfg LoginConfig) {
 	loginStartPacket, err := protocol.ReadPacket(conn)
 	if err != nil {
 		log.Println("Failed to read login start:", err)
@@ -117,12 +127,22 @@ func handleLogin(conn net.Conn, errorMessage string, errorDelay time.Duration, f
 	}
 	log.Printf("Login attempt: username=%q ip=%s", username, remoteIP)
 
-	if errorDelay > 0 {
-		time.Sleep(errorDelay)
+	if shouldProxyPlayer(username, cfg) {
+		if err := proxyToRealServer(conn, cfg.RealServerAddr, handshakePacket, loginStartPacket, username); err != nil {
+			log.Printf("Proxy error for %q: %v", username, err)
+			if sendErr := protocol.SendLoginDisconnect(conn, cfg.ErrorMessage); sendErr != nil {
+				log.Println("Failed to send disconnect after proxy error:", sendErr)
+			}
+		}
+		return
 	}
 
-	if !forceConnectionLostTitle {
-		if err := protocol.SendLoginDisconnect(conn, errorMessage); err != nil {
+	if cfg.ErrorDelay > 0 {
+		time.Sleep(cfg.ErrorDelay)
+	}
+
+	if !cfg.ForceConnectionLostTitle {
+		if err := protocol.SendLoginDisconnect(conn, cfg.ErrorMessage); err != nil {
 			log.Println("Failed to send disconnect:", err)
 		}
 		return
@@ -133,7 +153,62 @@ func handleLogin(conn net.Conn, errorMessage string, errorDelay time.Duration, f
 		return
 	}
 
-	if err := protocol.SendPlayDisconnect(conn, errorMessage); err != nil {
+	if err := protocol.SendPlayDisconnect(conn, cfg.ErrorMessage); err != nil {
 		log.Println("Failed to send play disconnect:", err)
 	}
+}
+
+func shouldProxyPlayer(username string, cfg LoginConfig) bool {
+	if cfg.RealServerAddr == "" || cfg.IsWhitelisted == nil {
+		return false
+	}
+
+	return cfg.IsWhitelisted(username)
+}
+
+func proxyToRealServer(clientConn net.Conn, serverAddr string, handshakePacket []byte, loginStartPacket []byte, username string) error {
+	backendConn, err := net.DialTimeout("tcp", serverAddr, 5*time.Second)
+	if err != nil {
+		return fmt.Errorf("connect to real server %s: %w", serverAddr, err)
+	}
+	defer backendConn.Close()
+
+	if _, err := backendConn.Write(protocol.WrapPacket(handshakePacket)); err != nil {
+		return fmt.Errorf("forward handshake: %w", err)
+	}
+	if _, err := backendConn.Write(protocol.WrapPacket(loginStartPacket)); err != nil {
+		return fmt.Errorf("forward login start: %w", err)
+	}
+
+	log.Printf("Proxy enabled for username=%q -> %s", username, serverAddr)
+
+	errCh := make(chan error, 2)
+	go relayTraffic(backendConn, clientConn, errCh)
+	go relayTraffic(clientConn, backendConn, errCh)
+
+	firstErr := <-errCh
+	secondErr := <-errCh
+
+	if !isRelayClosed(firstErr) {
+		return firstErr
+	}
+	if !isRelayClosed(secondErr) {
+		return secondErr
+	}
+
+	return nil
+}
+
+func relayTraffic(dst net.Conn, src net.Conn, errCh chan<- error) {
+	_, err := io.Copy(dst, src)
+
+	if tcpConn, ok := dst.(*net.TCPConn); ok {
+		_ = tcpConn.CloseWrite()
+	}
+
+	errCh <- err
+}
+
+func isRelayClosed(err error) bool {
+	return err == nil || errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed)
 }

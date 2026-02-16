@@ -18,6 +18,8 @@ const (
 	envProtocol                 = "PROTOCOL"
 	envMaxPlayers               = "MAX_PLAYERS"
 	envOnlinePlayers            = "ONLINE_PLAYERS"
+	envRealServerAddr           = "REAL_SERVER_ADDR"
+	envLoginWhitelist           = "LOGIN_WHITELIST"
 )
 
 const (
@@ -45,6 +47,8 @@ type Config struct {
 	Protocol                 int32
 	MaxPlayers               int32
 	OnlinePlayers            int32
+	RealServerAddr           string
+	LoginWhitelist           map[string]struct{}
 }
 
 var versionProtocolMap = map[string]int32{
@@ -77,6 +81,8 @@ func FromEnv() Config {
 		Protocol:                 protocolFromEnv(versionName),
 		MaxPlayers:               int32FromEnv(envMaxPlayers, defaultMaxPlayers),
 		OnlinePlayers:            int32FromEnv(envOnlinePlayers, defaultOnlinePlayers),
+		RealServerAddr:           stringFromEnv(envRealServerAddr, ""),
+		LoginWhitelist:           usernameSetFromEnv(envLoginWhitelist),
 	}
 }
 
@@ -183,6 +189,37 @@ func lookupNonEmptyEnv(key string) (string, bool) {
 	}
 
 	return value, true
+}
+
+func usernameSetFromEnv(key string) map[string]struct{} {
+	value, ok := lookupNonEmptyEnv(key)
+	if !ok {
+		return map[string]struct{}{}
+	}
+
+	set := map[string]struct{}{}
+	parts := strings.FieldsFunc(value, func(r rune) bool {
+		return r == ',' || r == ';'
+	})
+
+	for _, part := range parts {
+		username := strings.ToLower(strings.TrimSpace(part))
+		if username == "" {
+			continue
+		}
+		set[username] = struct{}{}
+	}
+
+	return set
+}
+
+func (c Config) IsLoginWhitelisted(username string) bool {
+	if len(c.LoginWhitelist) == 0 {
+		return false
+	}
+
+	_, ok := c.LoginWhitelist[strings.ToLower(strings.TrimSpace(username))]
+	return ok
 }
 
 func (c Config) Address() string {

@@ -33,7 +33,7 @@ func main() {
 	}
 
 	log.Printf(
-		"Server configuration loaded: ip=%s port=%s motd=%q version=%s protocol=%d max_players=%d online_players=%d error_delay=%s force_connection_lost_title=%t",
+		"Server configuration loaded: ip=%s port=%s motd=%q version=%s protocol=%d max_players=%d online_players=%d error_delay=%s force_connection_lost_title=%t real_server_addr=%q whitelist_size=%d",
 		cfg.IP,
 		cfg.Port,
 		cfg.MOTD,
@@ -43,9 +43,19 @@ func main() {
 		cfg.OnlinePlayers,
 		cfg.ErrorDelay,
 		cfg.ForceConnectionLostTitle,
+		cfg.RealServerAddr,
+		len(cfg.LoginWhitelist),
 	)
 
-	if err := server.Run(addr, cfg.ErrorMessage, cfg.ErrorDelay, cfg.ForceConnectionLostTitle, statusCfg); err != nil {
+	loginCfg := server.LoginConfig{
+		ErrorMessage:             cfg.ErrorMessage,
+		ErrorDelay:               cfg.ErrorDelay,
+		ForceConnectionLostTitle: cfg.ForceConnectionLostTitle,
+		RealServerAddr:           cfg.RealServerAddr,
+		IsWhitelisted:            cfg.IsLoginWhitelisted,
+	}
+
+	if err := server.Run(addr, statusCfg, loginCfg); err != nil {
 		log.Println("Server error:", err)
 		os.Exit(1)
 	}
