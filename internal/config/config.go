@@ -1,6 +1,7 @@
 package config
 
 import (
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -20,15 +21,17 @@ const (
 	envOnlinePlayers            = "ONLINE_PLAYERS"
 	envRealServerAddr           = "REAL_SERVER_ADDR"
 	envLoginWhitelist           = "LOGIN_WHITELIST"
+	envSimpleVoicechatPort      = "SIMPLE_VOICECHAT_PORT"
 )
 
 const (
-	defaultIP                  = "127.0.0.1"
-	defaultPort                = "25565"
-	defaultVersionName         = "1.20.1"
-	defaultProtocol      int32 = 763
-	defaultMaxPlayers          = 20
-	defaultOnlinePlayers       = 7
+	defaultIP                        = "127.0.0.1"
+	defaultPort                      = "25565"
+	defaultVersionName               = "1.20.1"
+	defaultProtocol            int32 = 763
+	defaultMaxPlayers                = 20
+	defaultOnlinePlayers             = 7
+	defaultSimpleVoicechatPort       = 24454
 )
 
 const (
@@ -49,6 +52,7 @@ type Config struct {
 	OnlinePlayers            int32
 	RealServerAddr           string
 	LoginWhitelist           map[string]struct{}
+	SimpleVoicechatPort      int
 }
 
 var versionProtocolMap = map[string]int32{
@@ -83,6 +87,7 @@ func FromEnv() Config {
 		OnlinePlayers:            int32FromEnv(envOnlinePlayers, defaultOnlinePlayers),
 		RealServerAddr:           stringFromEnv(envRealServerAddr, ""),
 		LoginWhitelist:           usernameSetFromEnv(envLoginWhitelist),
+		SimpleVoicechatPort:      portFromEnv(envSimpleVoicechatPort, defaultSimpleVoicechatPort),
 	}
 }
 
@@ -178,6 +183,15 @@ func int32FromEnvValue(key string) (int32, bool) {
 	return int32(value), true
 }
 
+func portFromEnv(key string, fallback int) int {
+	parsed, ok := int64FromEnv(key)
+	if !ok || parsed < 1 || parsed > 65535 {
+		return fallback
+	}
+
+	return int(parsed)
+}
+
 func lookupNonEmptyEnv(key string) (string, bool) {
 	value, ok := os.LookupEnv(key)
 	if !ok {
@@ -224,4 +238,17 @@ func (c Config) IsLoginWhitelisted(username string) bool {
 
 func (c Config) Address() string {
 	return c.IP + ":" + c.Port
+}
+
+func (c Config) RealServerVoicechatAddress() string {
+	if strings.TrimSpace(c.RealServerAddr) == "" {
+		return ""
+	}
+
+	host, _, err := net.SplitHostPort(c.RealServerAddr)
+	if err != nil {
+		return ""
+	}
+
+	return net.JoinHostPort(host, strconv.Itoa(c.SimpleVoicechatPort))
 }

@@ -116,3 +116,15 @@ Username matching is case-insensitive.
 - `internal/config` - loading and parsing env-based configuration;
 - `internal/server` - TCP server and handshake/status/login/proxy handling;
 - `internal/protocol` - Minecraft packet encoding/decoding.
+
+## Simple Voice Chat UDP Proxy
+
+Environment variable:
+
+- `SIMPLE_VOICECHAT_PORT` - UDP port for voice chat proxy (default: `24454`).
+
+Behavior:
+
+- UDP proxy listens on `IP:SIMPLE_VOICECHAT_PORT`;
+- backend UDP target is `host(REAL_SERVER_ADDR):SIMPLE_VOICECHAT_PORT`;
+- UDP packets are forwarded only for IP addresses that recently logged in with a whitelisted username (`LOGIN_WHITELIST`).

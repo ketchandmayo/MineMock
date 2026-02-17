@@ -141,3 +141,41 @@ func TestFromEnv_RealServerAddr(t *testing.T) {
 		t.Fatalf("unexpected RealServerAddr: %q", cfg.RealServerAddr)
 	}
 }
+
+func TestFromEnv_SimpleVoicechatPortDefault(t *testing.T) {
+	t.Setenv("SIMPLE_VOICECHAT_PORT", "")
+
+	cfg := FromEnv()
+	if cfg.SimpleVoicechatPort != 24454 {
+		t.Fatalf("expected default SIMPLE_VOICECHAT_PORT 24454, got %d", cfg.SimpleVoicechatPort)
+	}
+}
+
+func TestFromEnv_SimpleVoicechatPortOverride(t *testing.T) {
+	t.Setenv("SIMPLE_VOICECHAT_PORT", "25555")
+
+	cfg := FromEnv()
+	if cfg.SimpleVoicechatPort != 25555 {
+		t.Fatalf("expected SIMPLE_VOICECHAT_PORT 25555, got %d", cfg.SimpleVoicechatPort)
+	}
+}
+
+func TestFromEnv_SimpleVoicechatPortInvalidFallback(t *testing.T) {
+	t.Setenv("SIMPLE_VOICECHAT_PORT", "70000")
+
+	cfg := FromEnv()
+	if cfg.SimpleVoicechatPort != 24454 {
+		t.Fatalf("expected invalid SIMPLE_VOICECHAT_PORT to fallback to 24454, got %d", cfg.SimpleVoicechatPort)
+	}
+}
+
+func TestConfig_RealServerVoicechatAddress(t *testing.T) {
+	cfg := Config{
+		RealServerAddr:      "play.example.com:25565",
+		SimpleVoicechatPort: 24454,
+	}
+
+	if got := cfg.RealServerVoicechatAddress(); got != "play.example.com:24454" {
+		t.Fatalf("unexpected voicechat backend address: %q", got)
+	}
+}

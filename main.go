@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"os"
+	"strconv"
 
 	"MineMock/internal/config"
 	"MineMock/internal/server"
@@ -33,7 +35,7 @@ func main() {
 	}
 
 	log.Printf(
-		"Server configuration loaded: ip=%s port=%s motd=%q version=%s protocol=%d max_players=%d online_players=%d error_delay=%s force_connection_lost_title=%t real_server_addr=%q whitelist_size=%d",
+		"Server configuration loaded: ip=%s port=%s motd=%q version=%s protocol=%d max_players=%d online_players=%d error_delay=%s force_connection_lost_title=%t real_server_addr=%q whitelist_size=%d simple_voicechat_port=%d simple_voicechat_backend=%q",
 		cfg.IP,
 		cfg.Port,
 		cfg.MOTD,
@@ -45,14 +47,18 @@ func main() {
 		cfg.ForceConnectionLostTitle,
 		cfg.RealServerAddr,
 		len(cfg.LoginWhitelist),
+		cfg.SimpleVoicechatPort,
+		cfg.RealServerVoicechatAddress(),
 	)
 
 	loginCfg := server.LoginConfig{
-		ErrorMessage:             cfg.ErrorMessage,
-		ErrorDelay:               cfg.ErrorDelay,
-		ForceConnectionLostTitle: cfg.ForceConnectionLostTitle,
-		RealServerAddr:           cfg.RealServerAddr,
-		IsWhitelisted:            cfg.IsLoginWhitelisted,
+		ErrorMessage:               cfg.ErrorMessage,
+		ErrorDelay:                 cfg.ErrorDelay,
+		ForceConnectionLostTitle:   cfg.ForceConnectionLostTitle,
+		RealServerAddr:             cfg.RealServerAddr,
+		IsWhitelisted:              cfg.IsLoginWhitelisted,
+		SimpleVoicechatListenAddr:  net.JoinHostPort(cfg.IP, strconv.Itoa(cfg.SimpleVoicechatPort)),
+		SimpleVoicechatBackendAddr: cfg.RealServerVoicechatAddress(),
 	}
 
 	if err := server.Run(addr, statusCfg, loginCfg); err != nil {
