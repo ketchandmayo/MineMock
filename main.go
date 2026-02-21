@@ -6,7 +6,9 @@ import (
 	"log"
 	"net"
 	"os"
+	"sort"
 	"strconv"
+	"strings"
 
 	"MineMock/internal/config"
 	"MineMock/internal/server"
@@ -33,9 +35,69 @@ func main() {
 		MaxPlayers:    cfg.MaxPlayers,
 		OnlinePlayers: cfg.OnlinePlayers,
 	}
+	voicechatListenAddr := net.JoinHostPort(cfg.IP, strconv.Itoa(cfg.SimpleVoicechatPort))
+	logServerConfig(cfg, voicechatListenAddr)
+
+	loginCfg := server.LoginConfig{
+		ErrorMessage:               cfg.ErrorMessage,
+		ErrorDelay:                 cfg.ErrorDelay,
+		ForceConnectionLostTitle:   cfg.ForceConnectionLostTitle,
+		RealServerAddr:             cfg.RealServerAddr,
+		IsWhitelisted:              cfg.IsLoginWhitelisted,
+		SimpleVoicechatListenAddr:  voicechatListenAddr,
+		SimpleVoicechatBackendAddr: cfg.RealServerVoicechatAddress(),
+	}
+
+	if err := server.Run(addr, statusCfg, loginCfg); err != nil {
+		log.Println("Server error:", err)
+		os.Exit(1)
+	}
+}
+
+func logServerConfig(cfg config.Config, voicechatListenAddr string) {
+	whitelist := make([]string, 0, len(cfg.LoginWhitelist))
+	for username := range cfg.LoginWhitelist {
+		whitelist = append(whitelist, username)
+	}
+	sort.Strings(whitelist)
+
+	whitelistText := "<empty>"
+	if len(whitelist) > 0 {
+		whitelistText = strings.Join(whitelist, ", ")
+	}
+
+	realServerAddr := cfg.RealServerAddr
+	if strings.TrimSpace(realServerAddr) == "" {
+		realServerAddr = "<empty>"
+	}
+
+	voicechatBackendAddr := cfg.RealServerVoicechatAddress()
+	if strings.TrimSpace(voicechatBackendAddr) == "" {
+		voicechatBackendAddr = "<disabled>"
+	}
 
 	log.Printf(
-		"Server configuration loaded: ip=%s port=%s motd=%q version=%s protocol=%d max_players=%d online_players=%d error_delay=%s force_connection_lost_title=%t real_server_addr=%q whitelist_size=%d simple_voicechat_port=%d simple_voicechat_backend=%q",
+		"Server configuration loaded:\n"+
+			"  [network]\n"+
+			"    listen_addr: %s\n"+
+			"    ip: %s\n"+
+			"    port: %s\n"+
+			"  [status]\n"+
+			"    motd: %q\n"+
+			"    version_name: %q\n"+
+			"    protocol: %d\n"+
+			"    max_players: %d\n"+
+			"    online_players: %d\n"+
+			"  [login]\n"+
+			"    error_delay: %s\n"+
+			"    force_connection_lost_title: %t\n"+
+			"    real_server_addr: %s\n"+
+			"    whitelist_size: %d\n"+
+			"    whitelist: %s\n"+
+			"  [voicechat]\n"+
+			"    listen_addr: %s\n"+
+			"    backend_addr: %s",
+		cfg.Address(),
 		cfg.IP,
 		cfg.Port,
 		cfg.MOTD,
@@ -45,24 +107,10 @@ func main() {
 		cfg.OnlinePlayers,
 		cfg.ErrorDelay,
 		cfg.ForceConnectionLostTitle,
-		cfg.RealServerAddr,
+		realServerAddr,
 		len(cfg.LoginWhitelist),
-		cfg.SimpleVoicechatPort,
-		cfg.RealServerVoicechatAddress(),
+		whitelistText,
+		voicechatListenAddr,
+		voicechatBackendAddr,
 	)
-
-	loginCfg := server.LoginConfig{
-		ErrorMessage:               cfg.ErrorMessage,
-		ErrorDelay:                 cfg.ErrorDelay,
-		ForceConnectionLostTitle:   cfg.ForceConnectionLostTitle,
-		RealServerAddr:             cfg.RealServerAddr,
-		IsWhitelisted:              cfg.IsLoginWhitelisted,
-		SimpleVoicechatListenAddr:  net.JoinHostPort(cfg.IP, strconv.Itoa(cfg.SimpleVoicechatPort)),
-		SimpleVoicechatBackendAddr: cfg.RealServerVoicechatAddress(),
-	}
-
-	if err := server.Run(addr, statusCfg, loginCfg); err != nil {
-		log.Println("Server error:", err)
-		os.Exit(1)
-	}
 }
