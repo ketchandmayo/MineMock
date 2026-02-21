@@ -36,6 +36,7 @@ func main() {
 		OnlinePlayers: cfg.OnlinePlayers,
 	}
 	voicechatListenAddr := net.JoinHostPort(cfg.IP, strconv.Itoa(cfg.SimpleVoicechatPort))
+	writeBanner()
 	logServerConfig(cfg, voicechatListenAddr)
 
 	loginCfg := server.LoginConfig{
@@ -113,4 +114,18 @@ func logServerConfig(cfg config.Config, voicechatListenAddr string) {
 		voicechatListenAddr,
 		voicechatBackendAddr,
 	)
+}
+
+func writeBanner() {
+	banner := `
+	 ░  ░░░░  ░░        ░░   ░░░  ░░        ░░  ░░░░  ░░░      ░░░░      ░░░  ░░░░  ░
+	 ▒   ▒▒   ▒▒▒▒▒  ▒▒▒▒▒    ▒▒  ▒▒  ▒▒▒▒▒▒▒▒   ▒▒   ▒▒  ▒▒▒▒  ▒▒  ▒▒▒▒  ▒▒  ▒▒▒  ▒▒
+	 ▓        ▓▓▓▓▓  ▓▓▓▓▓  ▓  ▓  ▓▓      ▓▓▓▓        ▓▓  ▓▓▓▓  ▓▓  ▓▓▓▓▓▓▓▓     ▓▓▓▓
+	 █  █  █  █████  █████  ██    ██  ████████  █  █  ██  ████  ██  ████  ██  ███  ██
+	 █  ████  ██        ██  ███   ██        ██  ████  ███      ████      ███  ████  █
+
+     by Ketch
+	`
+
+	fmt.Fprintln(os.Stdout, banner)
 }
