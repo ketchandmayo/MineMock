@@ -2,6 +2,10 @@
   <configuration default="false" name="minemock" type="GoApplicationRunConfiguration" factoryName="Go Application">
     <module name="MineMock" />
     <working_directory value="$PROJECT_DIR$" />
+    <envs>
+      <env name="GOARCH" value="amd64" />
+      <env name="GOOS" value="linux" />
+    </envs>
     <kind value="PACKAGE" />
     <package value="MineMock" />
     <directory value="$PROJECT_DIR$" />
