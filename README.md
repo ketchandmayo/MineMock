@@ -1,4 +1,4 @@
-ï»¿# MineMock
+# MineMock
 
 **MineMock is a minimal TCP mock server for Minecraft (Java Edition), written in Go.**
 
@@ -39,11 +39,11 @@ Logs are written to:
 ```bash
 IP=127.0.0.1 \
 PORT=25565 \
-MOTD='§aMineMock\n§eTest server' \
+MOTD='Â§aMineMock\nÂ§eTest server' \
 VERSION_NAME='1.20.1' \
 MAX_PLAYERS=100 \
 ONLINE_PLAYERS=7 \
-ERROR='§r§7MineMock§r\n§cServer is temporarily unavailable. Try again later.' \
+ERROR='Â§rÂ§7MineMockÂ§r\nÂ§cServer is temporarily unavailable. Try again later.' \
 ERROR_DELAY_SECONDS=2 \
 FORCE_CONNECTION_LOST_TITLE=true \
 REAL_SERVER_ADDR='127.0.0.1:25566' \
@@ -56,11 +56,11 @@ LOGIN_WHITELIST='Steve,Alex' \
 ```powershell
 $env:IP = "127.0.0.1"
 $env:PORT = "25565"
-$env:MOTD = "§aMineMock\n§eTest server"
+$env:MOTD = "Â§aMineMock\nÂ§eTest server"
 $env:VERSION_NAME = "1.20.1"
 $env:MAX_PLAYERS = "100"
 $env:ONLINE_PLAYERS = "7"
-$env:ERROR = "§r§7MineMock§r\n§cServer is temporarily unavailable. Try again later."
+$env:ERROR = "Â§rÂ§7MineMockÂ§r\nÂ§cServer is temporarily unavailable. Try again later."
 $env:ERROR_DELAY_SECONDS = "2"
 $env:FORCE_CONNECTION_LOST_TITLE = "true"
 $env:REAL_SERVER_ADDR = "127.0.0.1:25566"
@@ -88,7 +88,7 @@ All settings are configured via environment variables:
 | `ERROR`                       | Disconnect message used during login                                                                           | `\u00a7c\u00a7oMine\u00a74\u00a7oMock\u00a7r\n\u00a72Server is working` |
 | `ERROR_DELAY_SECONDS`         | Delay before sending error (seconds)                                                                           | `0`                                                                       |
 | `FORCE_CONNECTION_LOST_TITLE` | `false`: disconnect directly in login; `true`: login success -> disconnect in play (shows "Connection Lost") | `false`                                                                   |
-| `MOTD`                        | MOTD in server status response                                                                                 | `§c§oMine§4§oMock§r\\n§6Minecraft mock server on golang§r | §eWelcomeO` |
+| `MOTD`                        | MOTD in server status response                                                                                 | `Â§cÂ§oMineÂ§4Â§oMockÂ§r\\nÂ§6Minecraft mock server on golangÂ§r | Â§eWelcomeO` |
 | `VERSION_NAME`                | Displayed Minecraft version                                                                                    | `1.20.1`                                                                  |
 | `PROTOCOL`                    | Protocol number used in status ping                                                                            | derived from `VERSION_NAME`                                               |
 | `MAX_PLAYERS`                 | `players.max` in status response                                                                               | `20`                                                                      |
